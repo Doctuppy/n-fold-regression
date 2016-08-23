@@ -1,0 +1,50 @@
+
+# z = seed, x = dependent var, y = independent var (1 or more), a = analysis data frame
+#split into training and testing sets
+set.seed(z)
+library(caTools)
+split = sample.split(a, SplitRatio = 0.7)
+train = subset(a, split == TRUE)
+test = subset(a, split == FALSE) 
+
+#binomial
+model.binomial <- glm(y~x,family=binomial, data = train)
+summary(model.binomial)
+
+#find OR from logistic regression
+exp(coef(model.binomial))
+#CI of OR from logistic regression
+exp(confint(model.binomial))
+
+library(pscl)
+pR2(model.binomial)
+
+fitted.results <- predict(model.binomial, newdata=test,type='response')
+fitted.results <- ifelse(fitted.results > 0.25,1,0)
+misClasificError <- mean(fitted.results != test$allb)
+print(paste('Accuracy',1-misClasificError))
+
+
+library(ROCR)
+predictAll = predict(model.binomial, type="response")
+ROCRpred = prediction(predictAll, train$allb)
+ROCRperf = performance(ROCRpred, "tpr", "fpr")
+plot(ROCRperf, colorize=TRUE, print.cutoffs.at=seq(0,1,by=0.1), text.adj=c(-0.2,1.7))
+
+
+predictTest = predict(model.binomial, type="response", newdata=test)
+
+ROCRpredTest = prediction(predictTest, test$allb)
+auc = as.numeric(performance(ROCRpredTest, "auc")@y.values)
+auc
+
+# Need to decide which method for ROC is preferred for this
+#R-blogger method ROC
+p <- predict(model_allb, newdata=test, type="response")
+pr <- prediction(p, test$allb)
+prf <- performance(pr, measure = "tpr", x.measure = "fpr")
+plot(prf)
+
+auc <- performance(pr, measure = "auc")
+auc <- auc@y.values[[1]]
+auc
